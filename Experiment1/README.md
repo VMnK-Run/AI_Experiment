@@ -20,7 +20,7 @@
       if n 是终点:
           从终点开始回溯parent节点，一直到起点;
           返回找到的路径，结束算法;
-  	else:
+      else:
           将n从open_set中删除, 加入close_set;
           for m in n的所有邻近节点:
               if m in close_set:

@@ -1,5 +1,5 @@
 from node import Node
-
+import copy
 
 class FifteensNode(Node):
     """Extends the Node class to solve the 15 puzzle.
@@ -66,7 +66,37 @@ class FifteensNode(Node):
         # TODO: add your code here
         # You should use self.board to produce children. Don't forget to create a new board for each child
         # e.g you can use copy.deepcopy function from the standard library.
-        pass
+        childrens = []
+        row = -1; col = -1;
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                if self.board[i][j] == 0:
+                    row = i;
+                    col = j;
+                    break
+        if row == -1 or col == -1:
+            return childrens
+        if row - 1 >= 0:
+            child_board = copy.deepcopy(self.board)
+            child_board[row][col], child_board[row - 1][col] = child_board[row - 1][col], child_board[row][col]
+            children = FifteensNode(parent=self, g=self.g+1, board=child_board, input_str=None)
+            childrens.append(children)
+        if row + 1 <= 3:
+            child_board = copy.deepcopy(self.board)
+            child_board[row][col], child_board[row + 1][col] = child_board[row + 1][col], child_board[row][col]
+            children = FifteensNode(parent=self, g=self.g+1, board=child_board, input_str=None)
+            childrens.append(children)
+        if col - 1 >= 0:
+            child_board = copy.deepcopy(self.board)
+            child_board[row][col], child_board[row][col - 1] = child_board[row][col - 1], child_board[row][col]
+            children = FifteensNode(parent=self, g=self.g+1, board=child_board, input_str=None)
+            childrens.append(children)
+        if col + 1 <= 3:
+            child_board = copy.deepcopy(self.board)
+            child_board[row][col], child_board[row][col + 1] = child_board[row][col + 1], child_board[row][col]
+            children = FifteensNode(parent=self, g=self.g+1, board=child_board, input_str=None)
+            childrens.append(children)
+        return childrens
 
     def is_goal(self):
         """Decides whether this search state is the final state of the puzzle.
@@ -79,7 +109,17 @@ class FifteensNode(Node):
 
         # TODO: add your code here
         # You should use self.board to decide.
-        pass
+        flag = True
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                if i == 3 and j == 3:
+                    if self.board[i][j] != 0:
+                        flag = False
+                else:
+                    if self.board[i][j] != i * 4 + j + 1:
+                        flag = False
+
+        return flag
 
     def evaluate_heuristic(self):
         """Heuristic function h(n) that estimates the minimum number of moves
@@ -93,7 +133,20 @@ class FifteensNode(Node):
 
         # TODO: add your code here
         # You may want to use self.board here.
-        pass
+        h = 0;
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                if i == 3 and j == 3:
+                    target = 0
+                else:
+                    target = i * 4 + j + 1
+                num = self.board[i][j]
+                if num != target:
+                    x = num / 4
+                    y = num - 4 * x - 1
+                    h += (abs(x - i) + abs(y - j)) # 计算曼哈顿距离
+
+        return h
 
     def _get_state(self):
         """Returns an hashable representation of this search state.
@@ -128,6 +181,10 @@ class FifteensNode(Node):
             sb.append('\n')
         return ''.join(sb)
 
+    def __lt__(self, other):
+        return self.f < other.f
+
+    
 
 class SuperqueensNode(Node):
     """Extends the Node class to solve the Superqueens problem.
@@ -193,7 +250,39 @@ class SuperqueensNode(Node):
         # You should use self.queen_positions and self.n to produce children.
         # Don't forget to create a new queen_positions list for each child.
         # You can use copy.deepcopy function from the standard library.
-        pass
+        childrens = []
+        x_flag = [False for x in range(self.n)]
+        y_flag = [False for y in range(self.n)]
+        if len(self.queen_positions) == self.n:
+            return childrens
+        for tuple in self.queen_positions:
+            x_flag[tuple[1]] = True
+            y_flag[tuple[0]] = True
+        # 计算下一个要摆放的行号
+        next_y = 0
+        if len(self.queen_positions) == 0:
+            next_y = 0
+        else:
+            tuple = self.queen_positions[-1]
+            next_y = tuple[0] + 1
+        directions = [(-2, 1), (-1, 2), (1, 2), (2, 1), (1, -2), (2, -1), (-1, -2), (-2, -1)] # 马的移动方向
+        for i in range(self.n):
+            if x_flag[i] == False:
+                new_positions = copy.deepcopy(self.queen_positions)
+                new_positions.append((next_y, i))
+                cost = 0 # 计算新产生的耗费
+                for j in range(min(next_y, i)):
+                    if (next_y - j - 1, i - j - 1) in new_positions:
+                        cost += 1
+                for j in range(min(next_y, self.n - i - 1)):
+                    if (next_y - j - 1, i + j + 1) in new_positions:
+                        cost += 1
+                for j in directions: # knight的攻击方式
+                    if (next_y + j[0], i + j[1]) in new_positions:
+                        cost += 1
+                children = SuperqueensNode(parent=self, g=self.g+cost, queen_positions=new_positions,n=self.n)
+                childrens.append(children)
+        return childrens
 
     def is_goal(self):
         """Decides whether all the queens are placed on the board.
@@ -205,7 +294,25 @@ class SuperqueensNode(Node):
         """
         # You should use self.queen_positions and self.n to decide.
         # TODO: add your code here
-        pass
+        x_flag = [False for i in range(self.n)]
+        y_flag = [False for i in range(self.n)]
+        flag = True
+        for tuple in self.queen_positions:
+            if x_flag[tuple[1]] == False:
+                x_flag[tuple[1]] = True
+            else:
+                flag = False
+                break
+            
+            if y_flag[tuple[0]] == False:
+                y_flag[tuple[0]] = True
+            else:
+                flag = False
+                break
+        # 要先保证放了足够的皇后
+        if len(self.queen_positions) != self.n:
+            flag = False
+        return flag
 
     def evaluate_heuristic(self):
         """Heuristic function h(n) that estimates the minimum number of conflicts required to reach the final state.
@@ -217,7 +324,9 @@ class SuperqueensNode(Node):
         """
         # If you want to design a heuristic for this problem, you should use self.queen_positions and self.n.
         # TODO: add your code here (optional)
-        return 0
+        h = 0
+        
+        return h
 
     def _get_state(self):
         """Returns an hashable representation of this search state.
@@ -243,3 +352,6 @@ class SuperqueensNode(Node):
         for i, j in self.queen_positions:
             sb[i][j] = ' Q '
         return '\n'.join([''.join(row) for row in sb])
+
+    def __lt__(self, other):
+        return self.f < other.f
